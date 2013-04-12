@@ -23,11 +23,15 @@ object BurndownChart {
         "chdl=Estimated|Actual",
         "chxt=x,y",
         "chxl=" + chartAxisLabelParam(data),
+        "chxr=" + chartAxisRangeParam(data, max),
         "chco=FF0000,00FF00",
-        s"chxr=1,${min},${max}",
         "chm=s,FF0000,0,-1,1|s,00FF00,1,-1,5|s,00aa00,2,-1,5",
         "chd=" + chartDataParam(data, max)
       ).mkString("&")
+  }
+
+  private def chartAxisRangeParam(data: Iterable[DailyStatus], max: Double) = {
+    "1,0,%1.1f,10".format(max)
   }
 
   private def chartAxisLabelParam(data: Iterable[DailyStatus]) = {
