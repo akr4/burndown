@@ -7,7 +7,8 @@ class DailyStatus(val date: LocalDate, val remaining: Option[Double])
 object DailyStatus {
   private val LOGGER = grizzled.slf4j.Logger[this.type]
 
-  def list(git: Git, dataFilePath: String, columnIndex: Int, start: LocalDate, end: LocalDate): List[DailyStatus] = {
+  def list(git: Git, dataFilePath: String, columnIndex: Int, start: LocalDate, end: LocalDate, separator: String):
+    List[DailyStatus] = {
     val standardTime = new LocalTime(12, 0, 0, 0)
     val lastCommitDate = List(git.newestTimestamp(dataFilePath).toLocalDate, end).min
 
@@ -25,7 +26,7 @@ object DailyStatus {
           allCommits.filter { x => x.timestamp.toLocalDate == date }.toList.sorted(orderByDistanceFromStandard)
         // toStream to only compute needed to find
         todaysCommits.toStream.map { commit: Commit =>
-          (commit, new DailyStatus(date, remaining(commit.text, columnIndex)))
+          (commit, new DailyStatus(date, remaining(commit.text, columnIndex, separator)))
         }.find(_._2.remaining.isDefined) match {
           case Some((commit, status)) =>
             LOGGER.info(s"use commit at ${commit.timestamp} for ${date}")
@@ -42,7 +43,7 @@ object DailyStatus {
   }
 
   /** @return total remaining days. error message if error */
-  private def remaining(tsvData: String, columnIndex: Int): Option[Double] = {
+  private def remaining(tsvData: String, columnIndex: Int, separator: String): Option[Double] = {
     def extractRemaining(x: (Array[String], Int)): Double = {
       val (columns, line) = x
 
@@ -62,7 +63,7 @@ object DailyStatus {
       tsvData.
         split("\n").
         drop(1). // skip title line
-        map(_.split("\t")).
+        map(_.split(separator)).
         zipWithIndex.
         map(extractRemaining).
         sum

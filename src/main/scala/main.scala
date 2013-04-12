@@ -14,7 +14,8 @@ object Main {
     dataFilePath: String = "",
     start: Option[LocalDate] = None,
     end: Option[LocalDate] = None,
-    columnIndex: Int = 0
+    columnIndex: Int = 0,
+    separator: String = "\t"
   )
 
   def main(args: Array[String]) {
@@ -34,6 +35,9 @@ object Main {
         },
         intOpt("c", "column", "<column>", "remaining days column number (1 offset)") {
           (v: Int, c: Config) => c.copy(columnIndex = v - 1)
+        },
+        opt("f", "separator", "<separator>", "field separator (regex)") {
+          (v: String, c: Config) => c.copy(separator = v)
         }
       )
     }
@@ -74,7 +78,7 @@ object Main {
       val git = new Git(config.gitLocalRepo)
       val start = config.start.orElse { Some(git.oldestTimestamp(config.dataFilePath).toLocalDate) }.get
       val end = config.end.orElse { Some(git.newestTimestamp(config.dataFilePath).toLocalDate) }.get
-      val data = DailyStatus.list(git, config.dataFilePath, config.columnIndex, start, end)
+      val data = DailyStatus.list(git, config.dataFilePath, config.columnIndex, start, end, config.separator)
 
       val url = BurndownChart.url(data)
       println(url)
