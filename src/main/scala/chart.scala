@@ -48,7 +48,26 @@ object BurndownChart {
 
   private def chartDataParam(data: Iterable[DailyStatus], max: Double) = {
     val encoder = SimpleDataEncoder
-    encoder.label + ":" + encoder.encode(List(Some(max), Some(0.0)), max) + "," + encoder.encode(data.map(_.remaining), max)
+    encoder.label + ":" + encoder.encode(List(Some(max), Some(0.0)), max) + "," +
+      encoder.encode(fillNoCommitDayUntilToday(data).map(_.remaining), max)
+  }
+
+  /** fill previous day's value to render continuous line chart */
+  private def fillNoCommitDayUntilToday(data: Iterable[DailyStatus]): Iterable[DailyStatus] = {
+    @annotation.tailrec
+    def f(acc: List[DailyStatus], data: Iterable[DailyStatus], lastValue: Option[Double]): List[DailyStatus] = {
+      data match {
+        case x::xs => x.remaining match {
+          case v@Some(_) => f(acc :+ x, xs, v)
+          case v =>
+            if (x.date <= LocalDate.today) f(acc :+ new DailyStatus(x.date, lastValue), xs, lastValue)
+            else f(acc :+ x, xs, v)
+        }
+        case _ => acc
+      }
+    }
+
+    f(Nil, data, None)
   }
 }
 
