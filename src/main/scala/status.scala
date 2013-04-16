@@ -9,21 +9,15 @@ object DailyStatus {
 
   def list(git: Git, dataFilePath: String, columnIndex: Int, start: LocalDate, end: LocalDate, separator: String):
     List[DailyStatus] = {
-    val standardTime = new LocalTime(12, 0, 0, 0)
     val lastCommitDate = List(git.newestTimestamp(dataFilePath).toLocalDate, end).min
 
     val allCommits = git.findCommits(dataFilePath)
     val dailyStatuStream = for {
       date <- Stream.iterate(start)(_ + 1.days).takeWhile(_ <= end)
     } yield {
-      val standard = date.toDateTime(standardTime)
-
-      if (standard.toLocalDate <= lastCommitDate) {
-        val orderByDistanceFromStandard = Ordering.by[Commit, Long] { x =>
-          math.abs(new Duration(standard, x.timestamp).getMillis)
-        }
+      if (date <= lastCommitDate) {
         val todaysCommits =
-          allCommits.filter { x => x.timestamp.toLocalDate == date }.toList.sorted(orderByDistanceFromStandard)
+          allCommits.filter { x => x.timestamp.toLocalDate == date }.toList.sortWith(_.timestamp > _.timestamp)
         // toStream to only compute needed to find
         todaysCommits.toStream.map { commit: Commit =>
           (commit, new DailyStatus(date, remaining(commit.text, columnIndex, separator)))
